@@ -21,6 +21,11 @@ module.exports = function (app) {
                     ctrl.login(req, res, next);
                 }
                     break;
+                case '1020': {
+                    var ctrl = new UserDataController();
+                    ctrl.relogin(req, res, next);
+                }
+                    break;
                 default:
                     next("protocol id error");
 

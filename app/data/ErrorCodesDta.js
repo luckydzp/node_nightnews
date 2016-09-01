@@ -11,7 +11,7 @@ var ErrCodes = {
     'err_sign': [-101, "安全验证失败"],
     'err_protocol': [-102, "不支持的协议"],
     'err_dataformat': [-103, "数据格式错误"],
-    'err_token': [-104, "token验证失败"],
+    'err_token': [-104, "token无效"],
 
 
     //业务错误
@@ -29,6 +29,9 @@ var ErrCodes = {
     'err_pwdEmpty': [-10200, "密码为空"],
     'err_pwdErr': [-10201, "密码验证失败"],
     'err_pwdUnchanged': [-10202, "密码与旧密码相同"],
+
+    //设备
+    'err_deviceErr': [-10300, "设备号无效"],
 
 
 }

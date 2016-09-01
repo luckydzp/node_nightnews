@@ -13,6 +13,9 @@ var PromiseUtil = require('./../util/PromiseUtil');
 const REDISKEY_TOKEN = 'node:nightnews:login:token:'
 const REDISKEY_UID = 'node:nightnews:login:uid:'
 
+//token失效
+const TOKEN_EXPIRE_TIME = 300;
+
 //mongoose model
 var UserData = mongoose.model('UserData');
 var IncUserid = mongoose.model('IncUserid');
@@ -140,6 +143,9 @@ UserDataCtrl.prototype.login = function (req, res, next) {
     else if (!reqBody.pwd) {
         CommonCtrl.prototype.doErr.call(this, res, ErrCodes.err_pwdEmpty);
     }
+    else if (!reqBody.device){
+        CommonCtrl.prototype.doErr.call(this, res, ErrCodes.err_deviceErr);
+    }
     else {
         if (reqBody.type == 1) {
             //email
@@ -173,8 +179,8 @@ UserDataCtrl.prototype.login = function (req, res, next) {
                             }
                         }
                     })
-                    .then(function (data) {
-                        if (data[0] != 'OK') {
+                    .then(function (err) {
+                        if (err[0] != 'OK') {
                             return PromiseUtil.createErrRet(ErrCodes.err_internal);
                         }
                         else {
@@ -227,8 +233,8 @@ UserDataCtrl.prototype.login = function (req, res, next) {
                             }
                         }
                     })
-                    .then(function (err, data) {
-                        if (data[0] != 'OK') {
+                    .then(function (err) {
+                        if (err[0] != 'OK') {
                             return PromiseUtil.createErrRet(ErrCodes.err_internal);
                         }
                         else {
@@ -255,6 +261,48 @@ UserDataCtrl.prototype.login = function (req, res, next) {
     }
 };
 
+
+UserDataCtrl.prototype.relogin = function (req, res, next) {
+    var reqBody = req.body;
+    if (!reqBody.token || !reqBody.device) {
+        CommonCtrl.prototype.doErr.call(this, res, ErrCodes.err_dataformat);
+    }
+    else {
+        var uid = null;
+        redisClient.hgetallAsync(REDISKEY_TOKEN + reqBody.token)
+            .then(function (data) {
+                if (!data || !data.uid) {
+                    return PromiseUtil.createErrRet(ErrCodes.err_token);
+                }
+                else {
+                    uid = data.uid;
+                    if (reqBody.device != data.device)
+                    {
+                        return PromiseUtil.createErrRet(ErrCodes.err_deviceErr);
+                    }
+                    else{
+                        return redisClient.expireAsync(REDISKEY_TOKEN + reqBody.token, TOKEN_EXPIRE_TIME);
+                    }
+                }
+            })
+            .then(function (data) {
+                var sendObj = {};
+                sendObj.uid = uid;
+                sendObj.token = reqBody.token;
+                CommonCtrl.prototype.doSuccess.call(this, res, sendObj);
+            })
+            .catch(function (err) {
+                var retErr = ErrCodes.err_internal;
+                if (err)
+                    retErr = err;
+                CommonCtrl.prototype.doErr.call(this, res, retErr);
+                return;
+            })
+    }
+}
+
+
+//private func
 function loginVerify(reqAccount, reqPwd, pwd) {
     if (reqAccount && reqPwd && pwd) {
         var calPwd = CommonUtil.tool.md5(reqAccount + pwd)
@@ -280,18 +328,15 @@ function loginProcess(uid, device, token) {
             }
         })
         .then(function (data) {
-            return redisClient.multi()
-                .set(REDISKEY_UID + uid, REDISKEY_TOKEN + token)
-                .expire(REDISKEY_UID + uid, 60)
-                .execAsync();
+            return redisClient.setAsync(REDISKEY_UID + uid, REDISKEY_TOKEN + token);
+
         })
         .then(function (data) {
             return redisClient.multi()
                 .hmset(REDISKEY_TOKEN + token, redisObj)
-                .expire(REDISKEY_TOKEN + token, 60)
+                .expire(REDISKEY_TOKEN + token, TOKEN_EXPIRE_TIME)
                 .execAsync();
         })
-
 
 
 }
