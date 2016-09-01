@@ -7,7 +7,7 @@ var mongoose = require('mongoose');
     "nick" : "tom",
     "account" : "tom@163.com",
     "pwd" : "md5pwd",
-    "phone" : "1380013800",
+    "phone" : "13800138000",
     "head" : "1",
     "registTime" : "1471442138",
     "wechat" : "",
@@ -16,7 +16,7 @@ var mongoose = require('mongoose');
 var UserDataSchema = new mongoose.Schema({
     uid:String,
     nick:String,
-    account:String,//email
+    mail:String,//email
     pwd:String,
     phone:String,
     head:String,

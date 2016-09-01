@@ -4,5 +4,5 @@
 var RegExp = require('./util/RegExpUtil');
 
 
-var str = "13800138000";
+var str = "1380013800";
 console.log(RegExp.isPhone(str));

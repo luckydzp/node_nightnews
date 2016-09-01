@@ -18,7 +18,7 @@ var ErrCodes = {
     //账号
     'err_unameEmpty': [-10100, "用户名为空"],
     'err_unameIllegal': [-10101, "用户名格式非法"],
-    'err_unameExist': [-10102, "用户名已存在"],
+    'err_mailExist': [-10102, "用户名已存在"],
     'err_phoneExist': [-10103, "手机号已存在"],
     'err_qqExist': [-10104, "qq号已存在"],
     'err_wechatExist': [-10105, "微信号已存在"],

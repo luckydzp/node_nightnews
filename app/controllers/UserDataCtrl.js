@@ -32,7 +32,7 @@ UserDataCtrl.prototype.register = function (req, res, next) {
     /*{
      "uid" : "2",
      "nick" : "tom",
-     "account" : "tom@163.com",
+     "mail" : "tom@163.com",
      "pwd" : "md5pwd",
      "phone" : "1380013800",
      "head" : "1",
@@ -41,55 +41,48 @@ UserDataCtrl.prototype.register = function (req, res, next) {
      }
      */
     var reqBody = req.body;
-    if (!reqBody.account) {
+    if (!reqBody.mail && !reqBody.phone) {
         CommonCtrl.prototype.doErr.call(this, res, ErrCodes.err_unameEmpty);
     }
-    else if (!RegExpUtil.isEmail(reqBody.account)) {
+    else if ((reqBody.mail && !RegExpUtil.isEmail(reqBody.mail)) || (reqBody.phone && !RegExpUtil.isPhone(reqBody.phone))) {
         CommonCtrl.prototype.doErr.call(this, res, ErrCodes.err_unameIllegal);
     }
     else if (!reqBody.pwd) {
         CommonCtrl.prototype.doErr.call(this, res, ErrCodes.err_pwdEmpty);
     }
     else {
-        var promise = UserData.findOne({account: reqBody.account}).exec();
-        promise
-            .then(function (data, reject) {
-                if (data) {
-                    return PromiseUtil.createErrRet(ErrCodes.err_unameExist);
+
+        new Promise(function (resolve, reject) {
+            resolve();
+
+        })
+            .then(function (data) {
+                if (reqBody.mail) {
+                    return UserData.findOne({mail: reqBody.mail}).exec();
                 }
-                else {
-                    if (reqBody.phone) {
-                        return UserData.findOne({phone: reqBody.phone}).exec();
-                    }
-                    else {
-                        return;
-                    }
+            })
+            .then(function (data) {
+                if (data) {
+                    return PromiseUtil.createErrRet(ErrCodes.err_mailExist);
+                }
+                else if (reqBody.phone) {
+                    return UserData.findOne({phone: reqBody.phone}).exec();
                 }
             })
             .then(function (data) {
                 if (data) {
                     return PromiseUtil.createErrRet(ErrCodes.err_phoneExist);
                 }
-                else {
-                    if (reqBody.qq) {
-                        return UserData.findOne({qq: reqBody.qq}).exec();
-                    }
-                    else {
-                        return;
-                    }
+                else if (reqBody.qq) {
+                    return UserData.findOne({qq: reqBody.qq}).exec();
                 }
             })
             .then(function (data) {
                 if (data) {
                     return PromiseUtil.createErrRet(ErrCodes.err_qqExist);
                 }
-                else {
-                    if (reqBody.wechat) {
-                        return UserData.findOne({wechat: reqBody.wechat}).exec();
-                    }
-                    else {
-                        return;
-                    }
+                else if (reqBody.wechat) {
+                    return UserData.findOne({wechat: reqBody.wechat}).exec();
                 }
             })
             .then(function (data) {
@@ -99,13 +92,12 @@ UserDataCtrl.prototype.register = function (req, res, next) {
                 else {
                     return IncUserid.findOneAndUpdate({name: "user"}, {$inc: {'id': 1}}).exec();
                 }
-
             })
             .then(function (data) {
                 if (data && data.id != -1) {
                     var userdata = new UserData();
                     userdata.uid = String(data.id);
-                    userdata.account = reqBody.account;
+                    userdata.mail = reqBody.mail;
                     userdata.pwd = reqBody.pwd;
                     userdata.nick = reqBody.nick || "";
                     userdata.phone = reqBody.phone || "";
@@ -143,7 +135,7 @@ UserDataCtrl.prototype.login = function (req, res, next) {
     else if (!reqBody.pwd) {
         CommonCtrl.prototype.doErr.call(this, res, ErrCodes.err_pwdEmpty);
     }
-    else if (!reqBody.device){
+    else if (!reqBody.device) {
         CommonCtrl.prototype.doErr.call(this, res, ErrCodes.err_deviceErr);
     }
     else {
@@ -160,7 +152,7 @@ UserDataCtrl.prototype.login = function (req, res, next) {
                 var tToken = null;
                 var tUid = null;
 
-                var promise = UserData.findOne({account: reqAccount}).exec();
+                var promise = UserData.findOne({mail: reqAccount}).exec();
                 promise
                     .then(function (user) {
                         if (!user) {
@@ -210,7 +202,7 @@ UserDataCtrl.prototype.login = function (req, res, next) {
             }
             else {
                 var reqPwd = reqBody.pwd;
-                var reqAccount = reqBody.phone;
+                var reqAccount = reqBody.account;
                 var reqDevice = reqBody.device;
                 var tToken = null;
                 var tUid = null;
@@ -276,11 +268,10 @@ UserDataCtrl.prototype.relogin = function (req, res, next) {
                 }
                 else {
                     uid = data.uid;
-                    if (reqBody.device != data.device)
-                    {
+                    if (reqBody.device != data.device) {
                         return PromiseUtil.createErrRet(ErrCodes.err_deviceErr);
                     }
-                    else{
+                    else {
                         return redisClient.expireAsync(REDISKEY_TOKEN + reqBody.token, TOKEN_EXPIRE_TIME);
                     }
                 }
